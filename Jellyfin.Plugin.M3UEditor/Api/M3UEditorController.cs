@@ -49,6 +49,16 @@ namespace Jellyfin.Plugin.M3UEditor.Api
             logger.LogInformation(Plugin.Instance.DataPath);
         }
 
+        [Authorize(Policy = "DefaultAuthorization")]
+        [HttpPost("GetApiKey")]
+        public ActionResult<String> GetApiKeyRequest()
+        {
+            Dictionary<string, string> key = new Dictionary<string, string>();
+            key.Add("key", Plugin.Instance.Configuration.API_KEY);
+
+            return Ok(JsonSerializer.Serialize(key));
+        }
+
         public class ChannelId
         {
             public string PlaylistUrl { get; set; }
@@ -225,12 +235,16 @@ namespace Jellyfin.Plugin.M3UEditor.Api
         public class M3UList
         {
             public string Id { get; set; }
+            public string key { get; set; }
         }
 
         [HttpGet("GetM3UList")]
         [Produces(MediaTypeNames.Text.Plain)]
         public ActionResult<String> GetM3UListRequest([FromQuery] M3UList list)
         {
+            if (!list.key.Equals(Plugin.Instance.Configuration.API_KEY))
+                return Ok();
+
             List<M3UItem> channels = Plugin.Instance.M3UChannels[list.Id];
 
             string Outfile = "#EXTM3U\n";
@@ -239,12 +253,12 @@ namespace Jellyfin.Plugin.M3UEditor.Api
             {
                 if (item.hidden)
                     continue;
-                Outfile += item.ExtInf + " ";
+                Outfile += item.ExtInf;
                 foreach(var kvp in item.Attributes)
                 {
-                    Outfile += kvp.Key + "=\"" + kvp.Value + "\" ";
+                    Outfile += " " + kvp.Key + "=\"" + kvp.Value + "\"";
                 }
-                Outfile += ", " + item.Name + "\n" + item.Url + "\n";
+                Outfile += "," + item.Name + "\n" + item.Url + "\n";
             }
 
             return Ok(Outfile);

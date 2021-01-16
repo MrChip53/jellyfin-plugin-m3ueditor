@@ -86,6 +86,7 @@
         <script type="text/javascript">
 
             var curChannel = null;
+            var apiKey = null;
 
             function loadPlaylists() {
                 var request = {
@@ -106,7 +107,7 @@
                         item.value = data[i].PlaylistUrl;
                         introSelect.appendChild(item);
                     }
-                    document.querySelector("#playlistDesc").innerHTML = "Import url: " + ApiClient.getUrl('M3UEditor/GetM3UList?Id=' + encodeURI(document.querySelector("#playlistSelection").value));
+                    document.querySelector("#playlistDesc").innerHTML = "Import url: " + ApiClient.getUrl('M3UEditor/GetM3UList?Id=' + encodeURI(document.querySelector("#playlistSelection").value) + "&key=" + encodeURI(apiKey));
                     Dashboard.hideLoadingMsg();
                 }).catch(function (error) {
                     Dashboard.hideLoadingMsg();
@@ -117,6 +118,31 @@
                 });
             }
 
+            function getApiKey() {
+                var request = {
+                    url: ApiClient.getUrl('M3UEditor/GetApiKey'),
+                    type: 'POST',
+                    contentType: 'application/json',
+                    dataType: "json"
+                };
+
+                ApiClient.fetch(request).then(data => {
+                    data = JSON.parse(data);
+                    console.log(data);
+                    apiKey = data.key;
+                    if (document.querySelector("#playlistSelection").value.length > 0)
+                        document.querySelector("#playlistDesc").innerHTML = "Import url: " + ApiClient.getUrl('M3UEditor/GetM3UList?Id=' + encodeURI(document.querySelector("#playlistSelection").value) + "&key=" + encodeURI(apiKey));
+                    Dashboard.hideLoadingMsg();
+                }).catch(function (error) {
+                    Dashboard.hideLoadingMsg();
+                    Dashboard.alert({
+                        message: error.stack
+                    });
+
+                });
+            }
+
+            getApiKey();
             loadPlaylists();
 
             document.querySelector("#attrSelection").addEventListener('change', function (event) {
@@ -125,7 +151,7 @@
             });
 
             document.querySelector("#playlistSelection").addEventListener('change', function (event) {
-                document.querySelector("#playlistDesc").innerHTML = "Import url: " + ApiClient.getUrl('M3UEditor/GetM3UList?Id=' + encodeURI(document.querySelector("#playlistSelection").value));
+                document.querySelector("#playlistDesc").innerHTML = "Import url: " + ApiClient.getUrl('M3UEditor/GetM3UList?Id=' + encodeURI(document.querySelector("#playlistSelection").value) + "&key=" + encodeURI(apiKey));
             });
 
             document.querySelector("#channelName").addEventListener('change', function (event) {
@@ -195,6 +221,9 @@
                     curChannel = JSON.parse(data);
                     var introSelect = document.getElementById("attrSelection");
                     introSelect.innerHTML = '';
+
+                    if (curChannel.Attributes["tvg-chno"] == undefined)
+                        curChannel.Attributes["tvg-chno"] = '';
 
                     for (const [key, value] of Object.entries(curChannel.Attributes)) {
                         console.log(`${key}: ${value}`);

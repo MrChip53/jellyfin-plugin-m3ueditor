@@ -1,0 +1,6 @@
+Generate random ApiKey for plugin public API use
+Take m3u urls through config pages
+Delete m3u urls through config pages
+List channels of a m3u url through config pages
+Edit channels of a m3u url through config pages
+Generate and make new, edited m3u urls available through public API endpoints

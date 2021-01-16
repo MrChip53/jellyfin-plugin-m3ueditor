@@ -1,4 +1,5 @@
 ﻿using MediaBrowser.Model.Plugins;
+using System;
 
 namespace Jellyfin.Plugin.M3UEditor.Configuration
 {
@@ -10,19 +11,11 @@ namespace Jellyfin.Plugin.M3UEditor.Configuration
 
     public class PluginConfiguration : BasePluginConfiguration
     {
-        // store configurable settings your plugin might need
-        public bool TrueFalseSetting { get; set; }
-        public int AnInteger { get; set; }
-        public string AString { get; set; }
-        public SomeOptions Options { get; set; }
+        public string API_KEY { get; set; }
 
         public PluginConfiguration()
         {
-            // set default options here
-            Options = SomeOptions.AnotherOption;
-            TrueFalseSetting = true;
-            AnInteger = 2;
-            AString = "string";
+            API_KEY = Guid.NewGuid().ToString();
         }
     }
 }
