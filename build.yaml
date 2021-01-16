@@ -1,0 +1,15 @@
+---
+name: "M3U Editor"
+guid: "69384327-d223-447a-ae23-47767eed1749"
+version: "10.7.0.01"
+targetAbi: "10.7.0.0"
+framework: "netstandard2.1"
+overview: "Edit M3U Playlists"
+description: >
+  Edit M3U playlists for Live TV
+category: "Live TV"
+owner: "Mr. Chip53"
+artifacts:
+- "Jellyfin.Plugin.M3UEditor.dll"
+changelog: >
+  changelog
