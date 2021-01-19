@@ -8,5 +8,6 @@ namespace Jellyfin.Plugin.M3UEditor.Entities
     {
         public string PlaylistName { get; set; }
         public string PlaylistUrl { get; set; }
+        public string UserAgent { get; set; }
     }
 }

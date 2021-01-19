@@ -231,7 +231,9 @@ namespace Jellyfin.Plugin.M3UEditor.Api
             if (!list.key.Equals(Plugin.Instance.Configuration.API_KEY))
                 return Ok();
 
-            List<M3UItem> channels = Plugin.Instance.M3UChannels[list.Id];
+            string Id = System.Text.Encoding.Default.GetString(Convert.FromBase64String(list.Id));
+
+            List<M3UItem> channels = Plugin.Instance.M3UChannels[Id];
 
             string Outfile = "#EXTM3U\n";
 

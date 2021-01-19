@@ -92,6 +92,10 @@
             var curChannel = null;
             var apiKey = null;
 
+            function getM3UUrl() {
+                return "Import url: " + ApiClient.getUrl('M3UEditor/GetM3UList?Id=' + encodeURI(btoa(document.querySelector("#playlistSelection").value)) + "&key=" + encodeURI(apiKey));
+            }
+
             function loadPlaylists() {
                 var request = {
                     url: ApiClient.getUrl('M3UEditor/GetPlaylists'),
@@ -109,7 +113,7 @@
                         item.value = data[i].PlaylistUrl;
                         introSelect.appendChild(item);
                     }
-                    document.querySelector("#playlistDesc").innerHTML = "Import url: " + ApiClient.getUrl('M3UEditor/GetM3UList?Id=' + encodeURI(document.querySelector("#playlistSelection").value) + "&key=" + encodeURI(apiKey));
+                    document.querySelector("#playlistDesc").innerHTML = getM3UUrl();
                     Dashboard.hideLoadingMsg();
                 }).catch(function (error) {
                     Dashboard.hideLoadingMsg();
@@ -131,7 +135,7 @@
                 ApiClient.fetch(request).then(data => {
                     apiKey = data.key;
                     if (document.querySelector("#playlistSelection").value.length > 0)
-                        document.querySelector("#playlistDesc").innerHTML = "Import url: " + ApiClient.getUrl('M3UEditor/GetM3UList?Id=' + encodeURI(document.querySelector("#playlistSelection").value) + "&key=" + encodeURI(apiKey));
+                        document.querySelector("#playlistDesc").innerHTML = getM3UUrl();
                     Dashboard.hideLoadingMsg();
                 }).catch(function (error) {
                     Dashboard.hideLoadingMsg();
@@ -151,7 +155,7 @@
             });
 
             document.querySelector("#playlistSelection").addEventListener('change', function (event) {
-                document.querySelector("#playlistDesc").innerHTML = "Import url: " + ApiClient.getUrl('M3UEditor/GetM3UList?Id=' + encodeURI(document.querySelector("#playlistSelection").value) + "&key=" + encodeURI(apiKey));
+                document.querySelector("#playlistDesc").innerHTML = getM3UUrl();
             });
 
             document.querySelector("#channelName").addEventListener('change', function (event) {
