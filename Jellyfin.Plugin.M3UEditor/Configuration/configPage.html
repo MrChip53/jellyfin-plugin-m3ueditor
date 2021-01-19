@@ -12,11 +12,15 @@
                     <div class="inputContainer">
                         <label class="inputeLabel inputLabelUnfocused" for="playlistName">Playlist Name</label>
                         <input id="playlistName" name="playlistName" type="text" value="" is="emby-input" />
-                        <div class="fieldDescription">Another Description</div>
                     </div>
                     <div class="inputContainer">
                         <label class="inputeLabel inputLabelUnfocused" for="playlistUrl">Playlist URL</label>
                         <input id="playlistUrl" name="playlistUrl" type="text" value="" is="emby-input" />
+                        <div class="fieldDescription">Another Description</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputeLabel inputLabelUnfocused" for="userAgent">Custom User-Agent</label>
+                        <input id="userAgent" name="userAgent" type="text" value="" is="emby-input" />
                         <div class="fieldDescription">Another Description</div>
                     </div>
                     <div>
@@ -97,8 +101,6 @@
                 };
 
                 ApiClient.fetch(request).then(data => {
-                    data = JSON.parse(data);
-                    console.log(data);
                     var introSelect = document.getElementById("playlistSelection");
                     introSelect.innerHTML = '';
                     for (var i = 0; i < data.length; i++) {
@@ -127,8 +129,6 @@
                 };
 
                 ApiClient.fetch(request).then(data => {
-                    data = JSON.parse(data);
-                    console.log(data);
                     apiKey = data.key;
                     if (document.querySelector("#playlistSelection").value.length > 0)
                         document.querySelector("#playlistDesc").innerHTML = "Import url: " + ApiClient.getUrl('M3UEditor/GetM3UList?Id=' + encodeURI(document.querySelector("#playlistSelection").value) + "&key=" + encodeURI(apiKey));
@@ -217,8 +217,7 @@
                 };
 
                 ApiClient.fetch(request).then(data => {
-                    console.log(data);
-                    curChannel = JSON.parse(data);
+                    curChannel = data;
                     var introSelect = document.getElementById("attrSelection");
                     introSelect.innerHTML = '';
 
@@ -263,7 +262,6 @@
                 };
 
                 ApiClient.fetch(request).then(data => {
-                    data = JSON.parse(data);
                     document.getElementById('channelSelectionPlaylist').value = query_data.PlaylistUrl;
                     var introSelect = document.getElementById("channelSelection");
                     introSelect.innerHTML = '';
@@ -295,7 +293,8 @@
 
                 var query_data = {
                     PlaylistName: document.querySelector('#playlistName').value,
-                    PlaylistUrl: document.querySelector('#playlistUrl').value
+                    PlaylistUrl: document.querySelector('#playlistUrl').value,
+                    UserAgent: document.querySelector('#userAgent').value
                 };
 
                 var request = {
@@ -307,14 +306,17 @@
                 };
 
                 ApiClient.fetch(request).then(data => {
-                    data = JSON.parse(data);
-                    var introSelect = document.getElementById("playlistSelection");
-                    introSelect.innerHTML = '';
-                    for (var i = 0; i < data.length; i++) {
-                        var item = document.createElement("option");
-                        item.text = data[i].PlaylistName;
-                        item.value = data[i].PlaylistUrl;
-                        introSelect.appendChild(item);
+                    if (data.ErrorCode == null) {
+                        var introSelect = document.getElementById("playlistSelection");
+                        introSelect.innerHTML = '';
+                        for (var i = 0; i < data.length; i++) {
+                            var item = document.createElement("option");
+                            item.text = data[i].PlaylistName;
+                            item.value = data[i].PlaylistUrl;
+                            introSelect.appendChild(item);
+                        }
+                    } else {
+                        alert(data.ErrorMsg);
                     }
                     Dashboard.hideLoadingMsg();
                 }).catch(function (error) {

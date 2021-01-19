@@ -56,7 +56,7 @@ namespace Jellyfin.Plugin.M3UEditor.Api
             Dictionary<string, string> key = new Dictionary<string, string>();
             key.Add("key", Plugin.Instance.Configuration.API_KEY);
 
-            return Ok(JsonSerializer.Serialize(key));
+            return Ok(key);
         }
 
         public class ChannelId
@@ -67,7 +67,7 @@ namespace Jellyfin.Plugin.M3UEditor.Api
 
         [Authorize(Policy = "DefaultAuthorization")]
         [HttpPost("GetChannel")]
-        public ActionResult<String> GetChannelsRequest([FromBody] ChannelId channel)
+        public ActionResult<String> GetChannelRequest([FromBody] ChannelId channel)
         {
             List<M3UItem> m3UPlaylist = new List<M3UItem>();
             if (Plugin.Instance.M3UChannels.ContainsKey(channel.PlaylistUrl))
@@ -78,8 +78,7 @@ namespace Jellyfin.Plugin.M3UEditor.Api
             {
                 return NotFound();
             }
-            _logger.LogInformation(JsonSerializer.Serialize(m3UPlaylist[channel.M3UChannelId]));
-            return Ok(JsonSerializer.Serialize(m3UPlaylist[channel.M3UChannelId]));
+            return Ok(m3UPlaylist[channel.M3UChannelId]);
         }
 
         public class SaveChannel
@@ -146,13 +145,14 @@ namespace Jellyfin.Plugin.M3UEditor.Api
                 });
             }
 
-            return Ok(JsonSerializer.Serialize(basicChannels));
+            return Ok(basicChannels);
         }
 
         public class AddPlaylist
         {
             public string PlaylistName { get; set; }
             public string PlaylistUrl { get; set; }
+            public string UserAgent { get; set; }
         }
 
         /// <summary>
@@ -168,68 +168,54 @@ namespace Jellyfin.Plugin.M3UEditor.Api
             {
                 if (item.PlaylistUrl == newPlaylist.PlaylistUrl)
                 {
-                    return Ok(JsonSerializer.Serialize(Plugin.Instance.M3UPlaylists));
+                    return Ok(Plugin.Instance.M3UPlaylists);
                 }
             }
+
+            string m3uFile;
+
+            try
+            {
+                using (WebClient client = new WebClient())
+                {
+                    if (newPlaylist.UserAgent.Length > 0)
+                        client.Headers.Add(HttpRequestHeader.UserAgent, newPlaylist.UserAgent);
+                    m3uFile = client.DownloadString(newPlaylist.PlaylistUrl);
+                }
+            }
+            catch (WebException ex)
+            {
+                _logger.LogError("Error downloading M3U file\n" + ex.Message);
+                return Ok(new ErrorResponse()
+                {
+                    ErrorMsg = "Error downloading M3U file.",
+                    ErrorCode = -1
+                });
+            }
+
             Plugin.Instance.M3UPlaylists.Add(new M3UPlaylist()
             {
                 PlaylistName = newPlaylist.PlaylistName,
-                PlaylistUrl = newPlaylist.PlaylistUrl
+                PlaylistUrl = newPlaylist.PlaylistUrl,
+                UserAgent = newPlaylist.UserAgent
             });
 
-            string m3uFile;
-            using (WebClient client = new WebClient())
-            {
-                m3uFile = client.DownloadString(newPlaylist.PlaylistUrl);
-            }
-
-            String[] m3uSplit = m3uFile.Split('\n');
-
-            List<M3UItem> items = new List<M3UItem>();
-
-            for (int i = 0; i < m3uSplit.Length; i++)
-            {
-                if (m3uSplit[i].Length == 0 || m3uSplit[i].Equals("#EXTM3U"))
-                    continue;
-
-                if (m3uSplit[i].StartsWith("#EXTINF"))
-                {
-                    //Parse info
-                    M3UItem newItem = new M3UItem();
-                    newItem.Attributes = new Dictionary<string, string>();
-                    string[] m3uattrs = Regex.Split(m3uSplit[i], "(?<=^[^\"]*(?:\"[^\"]*\"[^\"]*)*) (?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
-                    newItem.ExtInf = m3uattrs[0];
-                    foreach (string s in m3uattrs)
-                    {
-                        if (s.Contains("=") && s.Contains("\""))
-                        {
-                            Match mc = Regex.Match(s, "(.*?)=\"(.*?)\"");
-                            if (mc.Groups.Count == 3)
-                            {
-                                newItem.Attributes.Add(mc.Groups[1].Value, mc.Groups[2].Value);
-                            }
-                        }
-                    }
-                    string[] namesplit = m3uSplit[i].Split("\",");
-                    newItem.Name = namesplit[1].TrimStart();
-                    newItem.Url = m3uSplit[i + 1];
-                    items.Add(newItem);
-                }
-            }
+            var items = Helper.ParseM3U(m3uFile);
+            
             Plugin.Instance.M3UChannels.Add(newPlaylist.PlaylistUrl, items);
 
             Save.SaveM3UChannels(Plugin.Instance.M3UChannels, newPlaylist.PlaylistUrl);
 
             Save.SaveM3UPlaylists(Plugin.Instance.M3UPlaylists);
 
-            return Ok(JsonSerializer.Serialize(Plugin.Instance.M3UPlaylists));
+            return Ok(Plugin.Instance.M3UPlaylists);
         }
 
         [Authorize(Policy = "DefaultAuthorization")]
         [HttpPost("GetPlaylists")]
         public ActionResult<String> GetPlaylistRequest()
         {
-            return Ok(JsonSerializer.Serialize(Plugin.Instance.M3UPlaylists));
+            return Ok(Plugin.Instance.M3UPlaylists);
         }
 
         public class M3UList
