@@ -2,17 +2,27 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
-    <AssemblyVersion>10.7.0.01</AssemblyVersion>
-    <FileVersion>10.7.0.01</FileVersion>
-    <Version>10.7.0.01</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <Version>1.0.0.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Configuration\configPage.html" />
+    <None Remove="Configuration\m3u_main.html" />
+    <None Remove="Configuration\m3u_main.js" />
+    <None Remove="Configuration\Web\m3u_channels.html" />
+    <None Remove="Configuration\Web\m3u_channels.js" />
+    <None Remove="Configuration\Web\m3u_playlists.html" />
+    <None Remove="Configuration\Web\m3u_playlists.js" />
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Configuration\configPage.html" />
+    <EmbeddedResource Include="Configuration\Web\m3u_channels.html" />
+    <EmbeddedResource Include="Configuration\Web\m3u_channels.js" />
+    <EmbeddedResource Include="Configuration\Web\m3u_main.html" />
+    <EmbeddedResource Include="Configuration\Web\m3u_main.js" />
+    <EmbeddedResource Include="Configuration\Web\m3u_playlists.html" />
+    <EmbeddedResource Include="Configuration\Web\m3u_playlists.js" />
   </ItemGroup>
 
   <ItemGroup>

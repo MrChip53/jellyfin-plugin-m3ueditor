@@ -1,0 +1,49 @@
+﻿<div id="m3u_channels" data-role="page" class="page type-interior pluginConfigurationPage withTabs" data-require="emby-input,emby-button,emby-select,emby-checkbox" data-controller="__plugin/m3u_channels.js">
+    <div class="content">
+        <div class="content-primary">
+            <h2 class="sectionTitle">Playlist</h2>
+            <form id="pickPlaylist">
+                <div class="selectContainer">
+                    <label class="selectLabel" for="playlistSelection">Pick a playlist to load channels from</label>
+                    <select is="emby-select" id="playlistSelection" name="playlistSelection" class="emby-select-withcolor emby-select">
+                    </select>
+                    <div id="playlistDesc" class="fieldDescription"></div>
+                </div>
+            </form>
+
+            <div class="scheduledTask readOnlyContent">
+                <div class="verticalSection verticalSection-extrabottompadding">
+                    <div class="sectionTitleContainer" style="margin-bottom:1em;">
+                        <h2 class="sectionTitle">Channels</h2>
+                    </div>
+                    <div class="inputContainer">
+                        <div style="display:flex;align-items:center">
+                            <div style="flex-grow:1">
+                                <label class="inputLabel inputLabelUnfocused" for="searchTxt">Search Channels</label>
+                                <input is="emby-input" id="searchTxt" label="Search" autocomplete="off" type="text" class="emby-input">
+                            </div>
+                            <button type="button" is="paper-icon-button-light" id="btnFilterHidden" title="Show Hidden Channels" class="emby-input-iconbutton paper-icon-button-light">
+                                <span class="material-icons visibility"></span>
+                            </button>
+                        </div>
+                        <div class="fieldDescription">Start typing to search. Click the icon to filter out hidden channels.</div>
+                    </div>
+                    <div class="listItem" id="navigateContainer">
+                        <div class="listItemBody">
+                            <div id="pageText" class="listItemBodyText">Showing Page 1 of 1</div>
+                        </div>
+                        <button type="button" is="paper-icon-button-light" id="prevPage" class="btnStartTask paper-icon-button-light" title="Previous Page">
+                            <span class="material-icons navigate_before"></span>
+                        </button>
+                        <button type="button" is="paper-icon-button-light" id="nextPage" class="btnStartTask paper-icon-button-light" title="Next Page">
+                            <span class="material-icons navigate_next"></span>
+                        </button>
+                    </div>
+                    <div class="paperList" id="channelList">
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

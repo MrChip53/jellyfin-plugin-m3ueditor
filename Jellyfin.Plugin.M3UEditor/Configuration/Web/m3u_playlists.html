@@ -1,0 +1,37 @@
+﻿<div id="m3u_playlists" data-role="page" class="page type-interior pluginConfigurationPage withTabs" data-require="emby-input,emby-button,emby-select,emby-checkbox" data-controller="__plugin/m3u_playlists.js">
+    <div class="content">
+        <div class="content-primary">
+
+            <div class="scheduledTask readOnlyContent">
+                <div class="verticalSection verticalSection-extrabottompadding">
+                    <div class="sectionTitleContainer" style="margin-bottom:1em;">
+                        <h2 class="sectionTitle">Playlists</h2>
+                    </div>
+                    <div class="paperList" id="playlistList">
+                        
+                    </div>
+                </div>
+            </div>
+
+            <form id="newPlaylist">
+                <div class="inputContainer">
+                    <label class="inputeLabel inputLabelUnfocused" for="playlistName">Playlist Name</label>
+                    <input id="playlistName" name="playlistName" autocomplete="off" type="text" value="" is="emby-input" />
+                </div>
+                <div class="inputContainer">
+                    <label class="inputeLabel inputLabelUnfocused" for="playlistUrl">Playlist URL</label>
+                    <input id="playlistUrl" name="playlistUrl" autocomplete="off" type="text" value="" is="emby-input" />
+                </div>
+                <div class="inputContainer">
+                    <label class="inputeLabel inputLabelUnfocused" for="userAgent">Custom User-Agent</label>
+                    <input id="userAgent" name="userAgent" autocomplete="off" type="text" value="" is="emby-input" />
+                </div>
+                <div>
+                    <button is="emby-button" type="submit" class="raised button-submit block emby-button">
+                        <span>Add Playist</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

@@ -11,12 +11,9 @@ using MediaBrowser.Controller.MediaEncoding;
 using MediaBrowser.Controller.Devices;
 
 using System.Net.Mime;
-using MediaBrowser.Controller.Collections;
-using MediaBrowser.Controller.Library;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using MediaBrowser.Controller.Entities;
 using System.Collections.Generic;
 using System.Text.Json;
@@ -109,7 +106,7 @@ namespace Jellyfin.Plugin.M3UEditor.Api
 
             Plugin.Instance.M3UChannels[channel.PlaylistUrl] = m3UPlaylist;
 
-            Save.SaveM3UChannels(Plugin.Instance.M3UChannels, channel.PlaylistUrl);
+            Plugin.Instance.TaskManager.CancelIfRunningAndQueue<SaveTask>();
 
             return NoContent();
         }
@@ -117,6 +114,9 @@ namespace Jellyfin.Plugin.M3UEditor.Api
         public class PlaylistId
         {
             public string PlaylistUrl { get; set; }
+            public int PageNum { get; set; }
+            public bool ShowHidden { get; set; }
+            public string SearchString { get; set; }
         }
 
         [Authorize(Policy = "DefaultAuthorization")]
@@ -127,25 +127,58 @@ namespace Jellyfin.Plugin.M3UEditor.Api
             if (Plugin.Instance.M3UChannels.ContainsKey(playlist.PlaylistUrl))
             {
                 m3UPlaylist = Plugin.Instance.M3UChannels[playlist.PlaylistUrl];
+
+                if (m3UPlaylist.Count < (playlist.PageNum - 1) * 100)
+                    return NotFound();
             }
             else
             {
                 return NotFound();
             }
 
+            Dictionary<string, object> returnChannels = new Dictionary<string, object>();
+
             List<M3UBasicChannel> basicChannels = new List<M3UBasicChannel>();
 
-            for (int i = 0; i < m3UPlaylist.Count; i++)
+            int maxNum = playlist.PageNum * 100;
+            if (maxNum > m3UPlaylist.Count)
+                maxNum = m3UPlaylist.Count;
+
+            int channelCount = 0;
+
+            var currentChannel = 0;
+            var startChannel = (playlist.PageNum - 1) * 100;
+
+            foreach (var chan in m3UPlaylist)
             {
-                basicChannels.Add(new M3UBasicChannel()
+                if (!playlist.ShowHidden && chan.hidden)
                 {
-                    Id = i,
-                    Name = m3UPlaylist[i].Name,
-                    Hidden = m3UPlaylist[i].hidden
-                });
+                    currentChannel++;
+                    continue;
+                }
+                if (playlist.SearchString != null && playlist.SearchString.Length > 0 && !chan.Name.ToLower().Contains(playlist.SearchString.ToLower()))
+                {
+                    currentChannel++;
+                    continue;
+                }
+                if (channelCount >= startChannel && channelCount < maxNum)
+                {
+                    basicChannels.Add(new M3UBasicChannel()
+                    {
+                        Id = currentChannel,
+                        Name = chan.Name,
+                        Hidden = chan.hidden
+                    });
+                }
+                channelCount++;
+                currentChannel++;
             }
 
-            return Ok(basicChannels);
+            returnChannels.Add("channelsData", basicChannels);
+            returnChannels.Add("channels", channelCount);
+            returnChannels.Add("pages", Math.Ceiling(channelCount / 100.0));
+
+            return Ok(returnChannels);
         }
 
         public class AddPlaylist
@@ -200,15 +233,47 @@ namespace Jellyfin.Plugin.M3UEditor.Api
                 UserAgent = newPlaylist.UserAgent
             });
 
-            var items = Helper.ParseM3U(m3uFile);
-            
-            Plugin.Instance.M3UChannels.Add(newPlaylist.PlaylistUrl, items);
+            //var items = Helper.ParseM3U(m3uFile);
 
-            Save.SaveM3UChannels(Plugin.Instance.M3UChannels, newPlaylist.PlaylistUrl);
+            //Plugin.Instance.M3UChannels.Add(newPlaylist.PlaylistUrl, items);
+
+            //Save.SaveM3UChannels(Plugin.Instance.M3UChannels, newPlaylist.PlaylistUrl);
+
+            Plugin.Instance.TaskManager.Execute<RefreshTask>();
 
             Save.SaveM3UPlaylists(Plugin.Instance.M3UPlaylists);
 
             return Ok(Plugin.Instance.M3UPlaylists);
+        }
+
+        public class DeletePlaylist
+        {
+            public string PlaylistUrl { get; set; }
+        }
+
+        /// <summary>
+        /// Scans all movies and merges repeated ones.
+        /// </summary>
+        /// <reponse code="204">Library scan and merge started successfully. </response>
+        /// <returns>A <see cref="NoContentResult"/> indicating success.</returns>
+        [Authorize(Policy = "DefaultAuthorization")]
+        [HttpPost("DeletePlaylist")]
+        public ActionResult AddPlaylistRequest([FromBody] DeletePlaylist playlist)
+        {
+            for (int i = Plugin.Instance.M3UPlaylists.Count - 1; i >= 0; i--)
+            {
+                if (Plugin.Instance.M3UPlaylists[i].PlaylistUrl == playlist.PlaylistUrl)
+                {
+                    Save.DeleteM3UChannels(playlist.PlaylistUrl);
+                    if (Plugin.Instance.M3UChannels.ContainsKey(playlist.PlaylistUrl))
+                        Plugin.Instance.M3UChannels.Remove(playlist.PlaylistUrl);
+                    Plugin.Instance.M3UPlaylists.RemoveAt(i);
+                }
+            }
+
+            Save.SaveM3UPlaylists(Plugin.Instance.M3UPlaylists);
+
+            return Ok("done");
         }
 
         [Authorize(Policy = "DefaultAuthorization")]
@@ -242,7 +307,7 @@ namespace Jellyfin.Plugin.M3UEditor.Api
                 if (item.hidden)
                     continue;
                 Outfile += item.ExtInf;
-                foreach(var kvp in item.Attributes)
+                foreach (var kvp in item.Attributes)
                 {
                     Outfile += " " + kvp.Key + "=\"" + kvp.Value + "\"";
                 }

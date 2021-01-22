@@ -8,6 +8,7 @@ using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Plugins;
 using MediaBrowser.Model.Plugins;
 using MediaBrowser.Model.Serialization;
+using MediaBrowser.Model.Tasks;
 
 namespace Jellyfin.Plugin.M3UEditor
 {
@@ -17,12 +18,14 @@ namespace Jellyfin.Plugin.M3UEditor
         
         public override Guid Id => Guid.Parse("69384327-d223-447a-ae23-47767eed1749");
 
+        public readonly ITaskManager TaskManager;
+
         public String DataPath;
 
         public List<M3UPlaylist> M3UPlaylists = new List<M3UPlaylist>();
         public Dictionary<string, List<M3UItem>> M3UChannels = new Dictionary<string, List<M3UItem>>();
 
-        public Plugin(IApplicationPaths applicationPaths, IXmlSerializer xmlSerializer) : base(applicationPaths, xmlSerializer)
+        public Plugin(IApplicationPaths applicationPaths, IXmlSerializer xmlSerializer, ITaskManager taskManager) : base(applicationPaths, xmlSerializer)
         {
             Instance = this;
             DataPath = applicationPaths.DataPath + System.IO.Path.DirectorySeparatorChar + "m3u_editor" + System.IO.Path.DirectorySeparatorChar;
@@ -33,6 +36,8 @@ namespace Jellyfin.Plugin.M3UEditor
             }
             M3UPlaylists = Save.LoadM3UPlaylists();
             M3UChannels = Save.LoadM3UChannels(M3UPlaylists);
+
+            TaskManager = taskManager;
         }
 
         public static Plugin Instance { get; private set; }
@@ -43,10 +48,36 @@ namespace Jellyfin.Plugin.M3UEditor
             {
                 new PluginPageInfo
                 {
-                    Name = "m3u_editor_main",
-                    EmbeddedResourcePath = string.Format("{0}.Configuration.configPage.html", GetType().Namespace),
+                    Name = "m3u_main",
+                    EmbeddedResourcePath = string.Format("{0}.Configuration.Web.m3u_main.html", GetType().Namespace),
                     EnableInMainMenu = true,
-                    DisplayName = "M3U Editor"
+                    DisplayName = "M3U Editor",
+                    MenuIcon = "tv"
+                },
+                new PluginPageInfo
+                {
+                    Name = "m3u_main.js",
+                    EmbeddedResourcePath = string.Format("{0}.Configuration.Web.m3u_main.js", GetType().Namespace)
+                },
+                new PluginPageInfo
+                {
+                    Name = "m3u_playlists",
+                    EmbeddedResourcePath = string.Format("{0}.Configuration.Web.m3u_playlists.html", GetType().Namespace)
+                },
+                new PluginPageInfo
+                {
+                    Name = "m3u_playlists.js",
+                    EmbeddedResourcePath = string.Format("{0}.Configuration.Web.m3u_playlists.js", GetType().Namespace)
+                },
+                new PluginPageInfo
+                {
+                    Name = "m3u_channels",
+                    EmbeddedResourcePath = string.Format("{0}.Configuration.Web.m3u_channels.html", GetType().Namespace)
+                },
+                new PluginPageInfo
+                {
+                    Name = "m3u_channels.js",
+                    EmbeddedResourcePath = string.Format("{0}.Configuration.Web.m3u_channels.js", GetType().Namespace)
                 }
             };
         }

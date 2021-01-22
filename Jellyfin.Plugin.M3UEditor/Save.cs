@@ -29,7 +29,7 @@ namespace Jellyfin.Plugin.M3UEditor
         {
             if (key != null)
             {
-                using (StreamWriter writer = System.IO.File.CreateText(Plugin.Instance.DataPath + Convert.ToBase64String(Encoding.UTF8.GetBytes(key)) + ".json"))
+                using (StreamWriter writer = System.IO.File.CreateText(Plugin.Instance.DataPath + Helper.sha256(Convert.ToBase64String(Encoding.UTF8.GetBytes(key))) + ".json"))
                 {
                     writer.Write(JsonSerializer.Serialize(m3uChannels[key]));
                 }
@@ -37,11 +37,20 @@ namespace Jellyfin.Plugin.M3UEditor
             {
                 foreach(var kvp in m3uChannels)
                 {
-                    using (StreamWriter writer = System.IO.File.CreateText(Plugin.Instance.DataPath + Convert.ToBase64String(Encoding.UTF8.GetBytes(kvp.Key)) + ".json"))
+                    using (StreamWriter writer = System.IO.File.CreateText(Plugin.Instance.DataPath + Helper.sha256(Convert.ToBase64String(Encoding.UTF8.GetBytes(kvp.Key))) + ".json"))
                     {
                         writer.Write(JsonSerializer.Serialize(kvp.Value));
                     }
                 }
+            }
+        }
+
+        public static void DeleteM3UChannels(string key)
+        {
+            if (key != null)
+            {
+                if (File.Exists(Plugin.Instance.DataPath + Helper.sha256(Convert.ToBase64String(Encoding.UTF8.GetBytes(key))) + ".json"))
+                File.Delete(Plugin.Instance.DataPath + Helper.sha256(Convert.ToBase64String(Encoding.UTF8.GetBytes(key))) + ".json");
             }
         }
 
@@ -50,9 +59,9 @@ namespace Jellyfin.Plugin.M3UEditor
             Dictionary<string, List<M3UItem>> channelList = new Dictionary<string, List<M3UItem>>();
             foreach (var list in lists)
             {
-                if (File.Exists(Plugin.Instance.DataPath + Convert.ToBase64String(Encoding.UTF8.GetBytes(list.PlaylistUrl)) + ".json"))
+                if (File.Exists(Plugin.Instance.DataPath + Helper.sha256(Convert.ToBase64String(Encoding.UTF8.GetBytes(list.PlaylistUrl))) + ".json"))
                 {
-                    List<M3UItem> channels = JsonSerializer.Deserialize<List<M3UItem>>(File.ReadAllText(Plugin.Instance.DataPath + Convert.ToBase64String(Encoding.UTF8.GetBytes(list.PlaylistUrl)) + ".json"));
+                    List<M3UItem> channels = JsonSerializer.Deserialize<List<M3UItem>>(File.ReadAllText(Plugin.Instance.DataPath + Helper.sha256(Convert.ToBase64String(Encoding.UTF8.GetBytes(list.PlaylistUrl))) + ".json"));
                     channelList.Add(list.PlaylistUrl, channels);
                 }
             }

@@ -1,4 +1,5 @@
-﻿using MediaBrowser.Model.Tasks;
+﻿using Jellyfin.Plugin.M3UEditor.Entities;
+using MediaBrowser.Model.Tasks;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -41,30 +42,48 @@ namespace Jellyfin.Plugin.M3UEditor
         private async Task RefreshData(CancellationToken cancellationToken, IProgress<double> progress)
         {
             _logger.LogInformation("Refresh started.");
+            var totalChannels = 0;
+            var processedChannels = 0;
+
+            Dictionary<string, string> files = new Dictionary<string, string>();
+
             foreach (var playlist in Plugin.Instance.M3UPlaylists)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                progress.Report(Plugin.Instance.M3UPlaylists.IndexOf(playlist) / Plugin.Instance.M3UPlaylists.Count);
-
-                string m3uFile;
-                
                 try
                 {
                     using (WebClient client = new WebClient())
                     {
                         if (playlist.UserAgent != null && playlist.UserAgent.Length > 0)
                             client.Headers.Add(HttpRequestHeader.UserAgent, playlist.UserAgent);
-                        m3uFile = client.DownloadString(playlist.PlaylistUrl);
+                        string m3u = client.DownloadString(playlist.PlaylistUrl);
+                        string[] lines = m3u.Split('\n');
+                        totalChannels += (lines.Length - 1) / 2;
+                        files.Add(playlist.PlaylistUrl, m3u);
                     }
                 }
                 catch (WebException ex)
                 {
                     _logger.LogError("Error downloading M3U file\n" + ex.Message);
+                    files.Add(playlist.PlaylistUrl, "");
                     continue;
                 }
+            } 
+            foreach (var playlist in Plugin.Instance.M3UPlaylists)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                progress.Report(Plugin.Instance.M3UPlaylists.IndexOf(playlist) / Plugin.Instance.M3UPlaylists.Count);
+
+                string m3uFile = files[playlist.PlaylistUrl];
+
+                if (m3uFile == null || m3uFile.Length < 1)
+                    continue;
 
                 var newItems = Helper.ParseM3U(m3uFile);
+
+
+                if (!Plugin.Instance.M3UChannels.ContainsKey(playlist.PlaylistUrl))
+                    Plugin.Instance.M3UChannels.Add(playlist.PlaylistUrl, new List<M3UItem>());
 
                 var channels = Plugin.Instance.M3UChannels[playlist.PlaylistUrl];
 
@@ -84,6 +103,11 @@ namespace Jellyfin.Plugin.M3UEditor
                             newItems.RemoveAt(j);
                             break;
                         }
+                        processedChannels += 1;
+                        var percent = processedChannels / totalChannels;
+                        if (percent > 99)
+                            percent = 99;
+                        progress.Report(percent);
                     }
                 }
 
@@ -91,6 +115,9 @@ namespace Jellyfin.Plugin.M3UEditor
                     channels.AddRange(newItems);
 
                 Plugin.Instance.M3UChannels[playlist.PlaylistUrl] = channels;
+
+                Save.SaveM3UChannels(Plugin.Instance.M3UChannels, playlist.PlaylistUrl);
+                
             }
 
             progress.Report(100);
