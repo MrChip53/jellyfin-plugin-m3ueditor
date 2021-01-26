@@ -115,10 +115,10 @@ namespace Jellyfin.Plugin.M3UEditor
                     channels.AddRange(newItems);
 
                 Plugin.Instance.M3UChannels[playlist.PlaylistUrl] = channels;
-
-                Save.SaveM3UChannels(Plugin.Instance.M3UChannels, playlist.PlaylistUrl);
                 
             }
+
+            Plugin.Instance.TaskManager.CancelIfRunningAndQueue<SaveTask>();
 
             progress.Report(100);
         }

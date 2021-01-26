@@ -24,6 +24,7 @@ namespace Jellyfin.Plugin.M3UEditor
 
         public List<M3UPlaylist> M3UPlaylists = new List<M3UPlaylist>();
         public Dictionary<string, List<M3UItem>> M3UChannels = new Dictionary<string, List<M3UItem>>();
+        public readonly object fileLock = new object();
 
         public Plugin(IApplicationPaths applicationPaths, IXmlSerializer xmlSerializer, ITaskManager taskManager) : base(applicationPaths, xmlSerializer)
         {

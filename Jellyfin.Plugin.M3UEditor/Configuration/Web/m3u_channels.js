@@ -4,6 +4,8 @@
     var curChannelEdit;
     var curPage = 1;
     var showHidden = true;
+    var hideTimeout;
+    var reloadTimeout;
 
     Element.prototype.remove = function () {
         this.parentElement.removeChild(this);
@@ -149,15 +151,13 @@
             }).catch(function (error) {
                 Dashboard.hideLoadingMsg();
 
-                Dashboard.alert(error.stack);
+                console.log(error.stack);
             });
 
             Dashboard.hideLoadingMsg();
         }).catch(function (error) {
             Dashboard.hideLoadingMsg();
-            Dashboard.alert({
-                message: error.stack
-            });
+            console.log(error.stack);
         });
     }
 
@@ -227,7 +227,7 @@
                 div.parentElement.querySelector(`#channelAttributeForm`).remove();
                 div.innerHTML += getEditButton(cId);
                 addEditListeners(cId);
-                Dashboard.alert(error.stack);
+                console.log(error.stack);
             });
         }, false);
 
@@ -281,6 +281,8 @@
                     curChannelEdit.Attributes["tvg-chno"] = '';
 
                 for (const [key, value] of Object.entries(curChannelEdit.Attributes)) {
+                    if (key === "tvg-name")
+                        continue;
                     var item = document.createElement("option");
                     item.text = key;
                     item.value = key;
@@ -304,14 +306,14 @@
                     if (curChannelEdit == null)
                         return;
                     curChannelEdit.Name = document.querySelector("#channelName").value;
+                    if (curChannelEdit.Attributes["tvg-name"] !== null)
+                        curChannelEdit.Attributes["tvg-name"] = document.querySelector("#channelName").value;
                 });
 
                 Dashboard.hideLoadingMsg();
             }).catch(function (error) {
                 Dashboard.hideLoadingMsg();
-                Dashboard.alert({
-                    message: error.stack
-                });
+                console.log(error.stack);
             });
 
             addCancelSaveListeners(cId);
@@ -353,9 +355,7 @@
             Dashboard.hideLoadingMsg();
         }).catch(function (error) {
             Dashboard.hideLoadingMsg();
-            Dashboard.alert({
-                message: error.stack
-            });
+            console.log(error.stack);
         });
     }
 
@@ -380,9 +380,7 @@
             loadChannels(curPage);
         }).catch(function (error) {
             Dashboard.hideLoadingMsg();
-            Dashboard.alert({
-                message: error.stack
-            });
+            console.log(error.stack);
 
         });
     }
@@ -412,6 +410,12 @@
                         </button>`;
     }
 
+    function getHiddenFilterBtn(icon) {
+        return `<button type="button" is="paper-icon-button-light" id="btnFilterHidden" title="Show Hidden Channels" class="emby-input-iconbutton paper-icon-button-light">
+                                <span class="material-icons ${icon}"></span>
+                            </button>`;
+    }
+
     function nextPageEvent(e) {
         curPage += 1;
         loadChannels(curPage);
@@ -422,12 +426,94 @@
         loadChannels(curPage);
     }
 
+    function HidePageEvent() {
+        let hideEdits = curChannels.channelsData;
+        let url = document.getElementById('playlistSelection').value;
+
+        for (var i = 0; i < hideEdits.length; i++) {
+            var query_data = {
+                m3UChannelId: hideEdits[i].Id,
+                PlaylistUrl: url
+            };
+
+            var request = {
+                url: ApiClient.getUrl('M3UEditor/GetChannel'),
+                type: 'POST',
+                data: JSON.stringify(query_data),
+                dataType: "json",
+                contentType: 'application/json'
+            };
+
+            ApiClient.fetch(request).then(data => {
+                data.hidden = true;
+
+                var query_data = {
+                    channel: data,
+                    PlaylistUrl: url
+                };
+
+                var request = {
+                    url: ApiClient.getUrl('M3UEditor/SaveChannel'),
+                    type: 'POST',
+                    data: JSON.stringify(query_data),
+                    contentType: 'application/json'
+                };
+
+                ApiClient.fetch(request).then(data => {
+                    Dashboard.hideLoadingMsg();
+                    Dashboard.alert(`Channel visibility set for channel.`);
+                    clearTimeout(hideTimeout);
+                    hideTimeout = setTimeout(function () { loadChannels(curPage); }, 100);
+                }).catch(function (error) {
+                    Dashboard.hideLoadingMsg();
+
+                    console.log(error.stack);
+                });
+
+                Dashboard.hideLoadingMsg();
+            }).catch(function (error) {
+                Dashboard.hideLoadingMsg();
+                console.log(error.stack);
+            });
+        }
+    }
+
+    function HideAllPagesEvent() {
+        Dashboard.showLoadingMsg();
+        var query_data = {
+            PlaylistUrl: document.querySelector('#playlistSelection').value,
+            PageNum: 1,
+            ShowHidden: showHidden,
+            SearchString: document.getElementById('searchTxt').value
+        };
+
+        var request = {
+            url: ApiClient.getUrl('M3UEditor/HideChannels'),
+            type: 'POST',
+            data: JSON.stringify(query_data),
+            dataType: "json",
+            contentType: 'application/json'
+        };
+
+        ApiClient.fetch(request).then(data => {
+            curPage = 1;
+            loadChannels(curPage);
+            Dashboard.hideLoadingMsg();
+        }).catch(function (error) {
+            Dashboard.hideLoadingMsg();
+            console.log(error.stack);
+        });
+    }
+
     function setupPageButtons(page) {
         let prevBtn = document.getElementById('prevPage');
         let prevBool = true;
 
         let nextBtn = document.getElementById('nextPage');
         let nextBool = true;
+
+        let hidePageBtn = document.getElementById('hidePage');
+        let hideAllPagesBtn = document.getElementById('hideAllPages');
 
         let maxPages = curChannels.pages;
 
@@ -473,6 +559,12 @@
             nextBtn.removeEventListener('click', nextPageEvent);
             nextBtn.addEventListener('click', nextPageEvent, false);
         }
+
+        hidePageBtn.removeEventListener('click', HidePageEvent);
+        hidePageBtn.addEventListener('click', HidePageEvent, false);
+
+        hideAllPagesBtn.removeEventListener('click', HideAllPagesEvent);
+        hideAllPagesBtn.addEventListener('click', HideAllPagesEvent, false);
         
     }
 
@@ -480,15 +572,17 @@
         document.querySelector('#btnFilterHidden').addEventListener('click', function (e) {
             showHidden = !showHidden;
             let btn = document.getElementById('btnFilterHidden');
+            let parent = btn.parentElement;
             if (showHidden) {
-                btn.classList.remove('visibility_off');
-                btn.classList.add('visibility');
+                btn.remove();
+                parent.appendChild(document.createRange().createContextualFragment(getHiddenFilterBtn('visibility')))
             } else {
-                btn.classList.remove('visibility');
-                btn.classList.add('visibility_off');
+                btn.remove();
+                parent.appendChild(document.createRange().createContextualFragment(getHiddenFilterBtn('visibility_off')));
             }
             curPage = 1;
             loadChannels(curPage);
+            addFilterListener();
         }, false);
     }
 
@@ -497,7 +591,8 @@
 
         document.querySelector('#searchTxt').addEventListener('input', function (e) {
             curPage = 1;
-            loadChannels(curPage);
+            clearTimeout(reloadTimeout);
+            reloadTimeout = setTimeout(function () { loadChannels(curPage); }, 100);
         }, false);
 
         addFilterListener();

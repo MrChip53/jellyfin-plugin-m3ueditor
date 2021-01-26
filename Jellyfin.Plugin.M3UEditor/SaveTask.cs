@@ -45,6 +45,11 @@ namespace Jellyfin.Plugin.M3UEditor
                 cancellationToken.ThrowIfCancellationRequested();
 
                 Save.SaveM3UChannels(Plugin.Instance.M3UChannels, playlist.PlaylistUrl);
+
+                lock (Plugin.Instance.fileLock)
+                {
+                    Save.SaveM3UFile(playlist.PlaylistUrl, cancellationToken, progress);
+                }
                 
             }
 

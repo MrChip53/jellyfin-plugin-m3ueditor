@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 
 namespace Jellyfin.Plugin.M3UEditor
 {
@@ -33,9 +34,10 @@ namespace Jellyfin.Plugin.M3UEditor
                 {
                     writer.Write(JsonSerializer.Serialize(m3uChannels[key]));
                 }
-            } else
+            }
+            else
             {
-                foreach(var kvp in m3uChannels)
+                foreach (var kvp in m3uChannels)
                 {
                     using (StreamWriter writer = System.IO.File.CreateText(Plugin.Instance.DataPath + Helper.sha256(Convert.ToBase64String(Encoding.UTF8.GetBytes(kvp.Key))) + ".json"))
                     {
@@ -50,7 +52,7 @@ namespace Jellyfin.Plugin.M3UEditor
             if (key != null)
             {
                 if (File.Exists(Plugin.Instance.DataPath + Helper.sha256(Convert.ToBase64String(Encoding.UTF8.GetBytes(key))) + ".json"))
-                File.Delete(Plugin.Instance.DataPath + Helper.sha256(Convert.ToBase64String(Encoding.UTF8.GetBytes(key))) + ".json");
+                    File.Delete(Plugin.Instance.DataPath + Helper.sha256(Convert.ToBase64String(Encoding.UTF8.GetBytes(key))) + ".json");
             }
         }
 
@@ -66,6 +68,24 @@ namespace Jellyfin.Plugin.M3UEditor
                 }
             }
             return channelList;
+        }
+
+        public static string LoadM3U(string Id)
+        {
+            string ret = null;
+            if (File.Exists(Plugin.Instance.DataPath + Helper.sha256(Convert.ToBase64String(Encoding.UTF8.GetBytes(Id))) + ".m3u"))
+            {
+                ret = File.ReadAllText(Plugin.Instance.DataPath + Helper.sha256(Convert.ToBase64String(Encoding.UTF8.GetBytes(Id))) + ".m3u");
+            }
+            return ret;
+        }
+
+        public static void SaveM3UFile(string key, CancellationToken cancellationToken, IProgress<double> progress)
+        {
+            using (StreamWriter writer = System.IO.File.CreateText(Plugin.Instance.DataPath + Helper.sha256(Convert.ToBase64String(Encoding.UTF8.GetBytes(key))) + ".m3u"))
+            {
+                writer.Write(Helper.CreateM3U(key, cancellationToken, progress));
+            }
         }
     }
 }

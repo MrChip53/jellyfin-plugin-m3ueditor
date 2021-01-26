@@ -4,11 +4,55 @@ using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace Jellyfin.Plugin.M3UEditor
 {
     public static class Helper
     {
+        public static string CreateM3U(string Id, CancellationToken cancellationToken, IProgress<double> progress)
+        {
+            List<M3UItem> channels = Plugin.Instance.M3UChannels[Id];
+
+            string Outfile = "#EXTM3U\n";
+
+            foreach (M3UItem item in channels)
+            {
+                if (item.hidden)
+                    continue;
+                progress.Report(channels.IndexOf(item) / channels.Count);
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    return Outfile;
+                }
+                Outfile += item.ExtInf;
+                foreach (var kvp in item.Attributes)
+                {
+                    Outfile += " " + kvp.Key + "=\"" + kvp.Value + "\"";
+                }
+                Outfile += "," + item.Name + "\n" + item.Url + "\n";
+            }
+
+            return Outfile;
+        }
+        public static string CreateM3U(string Id)
+        {
+            var channels = Plugin.Instance.M3UChannels[Id].FindAll(item => item.hidden == true);
+
+            string Outfile = "#EXTM3U\n";
+
+            foreach (M3UItem item in channels)
+            {
+                Outfile += item.ExtInf;
+                foreach (var kvp in item.Attributes)
+                {
+                    Outfile += " " + kvp.Key + "=\"" + kvp.Value + "\"";
+                }
+                Outfile += "," + item.Name + "\n" + item.Url + "\n";
+            }
+
+            return Outfile;
+        }
         public static List<M3UItem> ParseM3U(string m3uFile)
         {
             String[] m3uSplit = m3uFile.Split('\n');
